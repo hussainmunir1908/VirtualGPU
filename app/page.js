@@ -1,101 +1,127 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useEffect } from 'react';
+import { useGPUStore } from '@/store/gpuStore';
+import * as gpu from '@/simulation/gpu';
+import { fmtBandwidth } from '@/simulation/gpu';
+
+import Controls from '@/components/ui/Controls';
+import WorkloadTabs from '@/components/ui/WorkloadTabs';
+import CoreGrid from '@/components/gpu/CoreGrid';
+import WarpTable from '@/components/gpu/WarpTable';
+import PipelineBar from '@/components/gpu/PipelineBar';
+import MemoryHierarchy from '@/components/gpu/MemoryHierarchy';
+import StatsPanel from '@/components/gpu/StatsPanel';
+import MatMulViz from '@/components/workloads/MatMulViz';
+import RasterizerViz from '@/components/workloads/RasterizerViz';
+
+export default function VirtualGPU() {
+  const { workload, running, bumpTick, setRunning } = useGPUStore();
+
+  useEffect(() => {
+    const unsub = gpu.subscribe(() => {
+      bumpTick();
+      if (!gpu.state.running && running) setRunning(false);
+    });
+    return unsub;
+  }, [bumpTick, setRunning, running]);
+
+  const s = gpu.state;
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <div className="flex flex-col h-screen overflow-hidden" style={{ background: 'var(--bg)' }}>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+      {/* ── Header ── */}
+      <header className="shrink-0 mx-3 mt-2.5 px-4 py-2 neu-card flex items-center gap-3 flex-wrap">
+        <WorkloadTabs />
+        <div className="w-px h-5" style={{ background: 'var(--border)' }} />
+        <Controls />
+        <div className="w-px h-5" style={{ background: 'var(--border)' }} />
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full"
+            style={{ background: running ? 'var(--green)' : 'var(--dim)' }} />
+          <span className="text-sm font-medium"
+            style={{ color: running ? 'var(--green)' : 'var(--dim)' }}>
+            {running ? 'RUNNING' : 'PAUSED'}
+          </span>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <div className="flex-1" />
+        <span className="font-mono text-sm" style={{ color: 'var(--dim)' }}>847 MHz</span>
+      </header>
+
+      {/* ── Stats bar ── */}
+      <div className="shrink-0 mx-3 mt-1.5 px-4 py-2 neu-card flex items-center gap-0 overflow-x-auto">
+        {[
+          { label: 'CYCLE',    value: s.cycle.toLocaleString(),                    color: 'var(--purple)' },
+          { label: 'IPC',      value: s.ipc > 0 ? s.ipc.toFixed(3) : '—',         color: 'var(--accent)' },
+          { label: 'CPI',      value: s.cpi > 0 ? s.cpi.toFixed(2) : '—',         color: 'var(--blue)'   },
+          { label: 'PIPELINE', value: s.pipelineEff > 0 ? s.pipelineEff+'%' : '—', color: 'var(--green)'  },
+          { label: 'OCCUPANCY',value: s.occupancy.toFixed(0)+'%',                  color: 'var(--green)'  },
+          { label: 'L1 HIT',   value: s.cacheHitRate.toFixed(0)+'%',              color: 'var(--blue)'   },
+          { label: 'BANDWIDTH',value: fmtBandwidth(s.bandwidthGB),                 color: 'var(--amber)'  },
+          { label: workload==='matmul' ? 'TFLOPS' : 'FRAMES',
+            value: workload==='matmul'
+              ? (s.tflops>0 ? s.tflops.toFixed(3) : '—')
+              : (s.rasterizer?.frameCount??0),
+            color: 'var(--accent)' },
+          { label: 'FWD',      value: s.forwardingEvents.toLocaleString(),         color: 'var(--blue)'   },
+          { label: 'HAZARDS',  value: s.hazardsDetected.toLocaleString(),          color: 'var(--amber)'  },
+        ].map(({ label, value, color }, i, arr) => (
+          <div key={label} className="flex items-center">
+            <div className="flex items-center gap-2 px-3">
+              <span className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--dim)' }}>
+                {label}
+              </span>
+              <span className="font-mono text-base font-semibold" style={{ color }}>{value}</span>
+            </div>
+            {i < arr.length-1 && <div className="w-px h-4" style={{ background: 'var(--border)' }} />}
+          </div>
+        ))}
+      </div>
+
+      {/* ── Main grid ── */}
+      <div className="flex-1 overflow-hidden flex gap-2 p-3 pt-2 min-h-0">
+
+        {/* LEFT column */}
+        <div className="flex flex-col gap-2 min-w-0" style={{ flex: '1.2' }}>
+          {/* Core grid — shrink-0 so it stays its natural height */}
+          <div className="neu-card p-4 shrink-0">
+            <CoreGrid cores={s.cores} focusedCore={s.focusedCore} />
+          </div>
+          {/* Workload viz takes remaining space */}
+          <div className="neu-card p-4 flex-1 overflow-hidden min-h-0">
+            {workload === 'matmul'
+              ? <MatMulViz matmul={s.matmul} />
+              : <RasterizerViz rasterizer={s.rasterizer} />
+            }
+          </div>
+        </div>
+
+        {/* RIGHT column — FIXED heights on every panel to prevent layout shift */}
+        <div className="flex flex-col gap-2 min-w-0" style={{ flex: '0.8' }}>
+          {/* Warp scheduler — fixed 220px */}
+          <div className="neu-card p-3.5" style={{ height: 220, overflow: 'hidden' }}>
+            <WarpTable scheduler={s.scheduler} />
+          </div>
+          {/* Pipeline — fixed 150px */}
+          <div className="neu-card p-3.5" style={{ height: 150, overflow: 'hidden' }}>
+            <PipelineBar
+              pipeline={s.pipeline}
+              pipelineEff={s.pipelineEff}
+              forwardingEvents={s.forwardingEvents}
+              hazardsDetected={s.hazardsDetected}
+            />
+          </div>
+          {/* Memory hierarchy — fixed 220px with scroll */}
+          <div className="neu-card p-3.5" style={{ height: 220, overflowY: 'auto' }}>
+            <MemoryHierarchy memory={s.memory} />
+          </div>
+          {/* Stats — takes remaining space */}
+          <div className="neu-card p-3.5 flex-1 overflow-y-auto min-h-0">
+            <StatsPanel state={s} />
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

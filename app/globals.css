@@ -1,27 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* ─── Light warm palette: off-white · beige · brown ─────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg:        #F2EDE4;   /* warm off-white background */
+  --surface:   #E8DFD0;   /* light beige cards */
+  --raised:    #DDD2C0;   /* slightly darker beige */
+  --hover:     #D2C5AF;   /* hover state */
+  --border:    #C4B8A5;   /* warm tan border */
+  --border-hi: #A8987E;   /* accent border */
+
+  --text:      #1A1510;   /* near-black warm */
+  --muted:     #6B5A48;   /* warm brown-gray */
+  --dim:       #9A8878;   /* light warm gray */
+
+  --accent:    #7A4E28;   /* deep caramel brown — primary */
+  --green:     #3A6848;   /* forest green */
+  --amber:     #8A5E18;   /* amber-brown */
+  --red:       #7A3830;   /* muted red-brown */
+  --blue:      #2A5080;   /* slate blue */
+  --purple:    #583870;   /* muted purple */
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
+html, body { height: 100%; overflow: hidden; }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 14px;   /* bumped up from 13px */
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
-@layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+/* ─── Flat professional cards ───────────────────────────────────── */
+.neu-card {
+  background: var(--surface);
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
+.neu-inset {
+  background: var(--bg);
+  border-radius: 5px;
+  border: 1px solid var(--border);
+}
+.neu-btn {
+  background: var(--raised);
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.12s, background 0.12s, color 0.12s;
+  outline: none;
+}
+.neu-btn:hover  { background: var(--hover); border-color: var(--accent); color: var(--text); }
+.neu-btn:active { background: var(--surface); }
+
+/* ─── Scrollbar ─────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ─── Core pulse ────────────────────────────────────────────────── */
+@keyframes pulse-core { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+.animate-pulse-core { animation: pulse-core 1.6s ease-in-out infinite; }
