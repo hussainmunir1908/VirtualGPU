@@ -1,6 +1,7 @@
 # VirtualGPU — Real-Time GPU Architecture Simulator
 
 A browser-based simulator that visualises how a real GPU executes workloads in real time. Built as a CS361 Computer Architecture course project.
+Check it out here: https://virtual-gpu.vercel.app/
 
 ![VirtualGPU Screenshot](public/screenshot.png)
 
