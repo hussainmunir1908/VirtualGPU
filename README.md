@@ -124,14 +124,6 @@ npm run build
 
 ---
 
-## Team
-
-| Name | Contribution |
-|---|---|
-| | |
-
----
-
 ## References
 
 - NVIDIA GPU Architecture Whitepapers
