@@ -90,15 +90,23 @@ export function tickMatMul(matmulState, memState, coreStates, cycle, stallWarpFn
     const loadDuration = LOAD_TICKS; // fixed ticks; real-time duration scales with speed slider
     tile.progress = Math.min(50, (matmulState.phaseTimer / loadDuration) * 50);
 
-    // Highlight A columns and B rows being loaded into shared memory
+    // Highlight the full row-stripe of A and column-stripe of B being loaded
+    // into L1 shared memory for this tile's computation.
+    // Tile (tr, tc) of C = A[tr*ts .. tr*ts+ts-1, ALL cols] × B[ALL rows, tc*ts .. tc*ts+ts-1]
     matmulState.highlightedA = [];
     matmulState.highlightedB = [];
-    for (let k = 0; k < tileSize; k++) {
-      for (let i = 0; i < tileSize; i++) {
-        const row = tr * tileSize + i;
-        const col = tc * tileSize + i;
-        if (row < size) matmulState.highlightedA.push({ row, col: k });
-        if (col < size) matmulState.highlightedB.push({ row: k, col });
+    for (let i = 0; i < tileSize; i++) {
+      const aRow = tr * tileSize + i;   // rows of A this tile reads
+      const bCol = tc * tileSize + i;   // columns of B this tile reads
+      if (aRow < size) {
+        for (let col = 0; col < size; col++) {          // all columns — full inner product
+          matmulState.highlightedA.push({ row: aRow, col });
+        }
+      }
+      if (bCol < size) {
+        for (let row = 0; row < size; row++) {          // all rows — full inner product
+          matmulState.highlightedB.push({ row, col: bCol });
+        }
       }
     }
 
@@ -117,6 +125,21 @@ export function tickMatMul(matmulState, memState, coreStates, cycle, stallWarpFn
   } else if (tile.state === 'computing') {
     const computeDuration = COMPUTE_TICKS; // fixed ticks; real-time duration scales with speed slider
     tile.progress = 50 + Math.min(50, (matmulState.phaseTimer / computeDuration) * 50);
+
+    // During computing, keep A/B highlighted to show they're being read from L1 shared memory.
+    // Re-generate using the same logic as loading so they persist correctly.
+    matmulState.highlightedA = [];
+    matmulState.highlightedB = [];
+    for (let i = 0; i < tileSize; i++) {
+      const aRow = tr * tileSize + i;
+      const bCol = tc * tileSize + i;
+      if (aRow < size) {
+        for (let col = 0; col < size; col++) matmulState.highlightedA.push({ row: aRow, col });
+      }
+      if (bCol < size) {
+        for (let row = 0; row < size; row++) matmulState.highlightedB.push({ row, col: bCol });
+      }
+    }
 
     // Progressive dot product — compute newly completed cells this tick
     const fractionDone = Math.min(1, matmulState.phaseTimer / computeDuration);
