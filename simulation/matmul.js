@@ -90,23 +90,25 @@ export function tickMatMul(matmulState, memState, coreStates, cycle, stallWarpFn
     const loadDuration = LOAD_TICKS; // fixed ticks; real-time duration scales with speed slider
     tile.progress = Math.min(50, (matmulState.phaseTimer / loadDuration) * 50);
 
-    // Highlight the full row-stripe of A and column-stripe of B being loaded
-    // into L1 shared memory for this tile's computation.
-    // Tile (tr, tc) of C = A[tr*ts .. tr*ts+ts-1, ALL cols] × B[ALL rows, tc*ts .. tc*ts+ts-1]
+    // Show one tileSize×tileSize block at a time — animate the k-step (inner accumulation)
+    // so the highlighted block walks left-to-right across A and top-to-bottom down B.
+    const tilesPerRow = Math.ceil(size / tileSize);
+    const kStep = Math.min(
+      Math.floor((matmulState.phaseTimer / LOAD_TICKS) * tilesPerRow),
+      tilesPerRow - 1
+    );
     matmulState.highlightedA = [];
     matmulState.highlightedB = [];
     for (let i = 0; i < tileSize; i++) {
-      const aRow = tr * tileSize + i;   // rows of A this tile reads
-      const bCol = tc * tileSize + i;   // columns of B this tile reads
-      if (aRow < size) {
-        for (let col = 0; col < size; col++) {          // all columns — full inner product
-          matmulState.highlightedA.push({ row: aRow, col });
-        }
-      }
-      if (bCol < size) {
-        for (let row = 0; row < size; row++) {          // all rows — full inner product
-          matmulState.highlightedB.push({ row, col: bCol });
-        }
+      for (let j = 0; j < tileSize; j++) {
+        // A block: output-tile rows, k-step columns
+        const aRow = tr * tileSize + i;
+        const aCol = kStep * tileSize + j;
+        if (aRow < size && aCol < size) matmulState.highlightedA.push({ row: aRow, col: aCol });
+        // B block: k-step rows, output-tile columns
+        const bRow = kStep * tileSize + i;
+        const bCol = tc * tileSize + j;
+        if (bRow < size && bCol < size) matmulState.highlightedB.push({ row: bRow, col: bCol });
       }
     }
 
@@ -126,18 +128,23 @@ export function tickMatMul(matmulState, memState, coreStates, cycle, stallWarpFn
     const computeDuration = COMPUTE_TICKS; // fixed ticks; real-time duration scales with speed slider
     tile.progress = 50 + Math.min(50, (matmulState.phaseTimer / computeDuration) * 50);
 
-    // During computing, keep A/B highlighted to show they're being read from L1 shared memory.
-    // Re-generate using the same logic as loading so they persist correctly.
+    // During computing, animate the same k-step block through A and B
+    // to show which partial products are being accumulated from L1 shared memory.
+    const tilesPerRowC = Math.ceil(size / tileSize);
+    const kStepC = Math.min(
+      Math.floor((matmulState.phaseTimer / COMPUTE_TICKS) * tilesPerRowC),
+      tilesPerRowC - 1
+    );
     matmulState.highlightedA = [];
     matmulState.highlightedB = [];
     for (let i = 0; i < tileSize; i++) {
-      const aRow = tr * tileSize + i;
-      const bCol = tc * tileSize + i;
-      if (aRow < size) {
-        for (let col = 0; col < size; col++) matmulState.highlightedA.push({ row: aRow, col });
-      }
-      if (bCol < size) {
-        for (let row = 0; row < size; row++) matmulState.highlightedB.push({ row, col: bCol });
+      for (let j = 0; j < tileSize; j++) {
+        const aRow = tr * tileSize + i;
+        const aCol = kStepC * tileSize + j;
+        if (aRow < size && aCol < size) matmulState.highlightedA.push({ row: aRow, col: aCol });
+        const bRow = kStepC * tileSize + i;
+        const bCol = tc * tileSize + j;
+        if (bRow < size && bCol < size) matmulState.highlightedB.push({ row: bRow, col: bCol });
       }
     }
 
